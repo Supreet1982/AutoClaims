@@ -181,11 +181,85 @@ rmse(pred, actual)
 
 ################################################################################
 
+#Confidence Interval
 
+pred_link <- predict(glm2, newdata = AutoClaims_test, se.fit = TRUE,
+                     type = 'link')
 
+z <- 1.96
 
+fit_link <- pred_link$fit
+se_link <- pred_link$se.fit
 
+lower_link <- fit_link - z * se_link
+upper_link <- fit_link + z * se_link
 
+pred_response <- exp(fit_link)
+lower_res <- exp(lower_link)
+upper_rep <- exp(upper_link)
+
+plot_data <- data.frame(
+  Age = AutoClaims_test$Age,
+  Predicted = pred_response,
+  upper = upper_rep,
+  lower = lower_res
+)
+
+plot_data %>%
+  ggplot(aes(Age, Predicted)) +
+  geom_point(color = 'blue', alpha = 0.6) +
+  geom_line(color = 'darkblue') +
+  geom_ribbon(aes(ymin = lower, ymax = upper, color = 'lightblue', 
+                  alpha = 0.3)) + 
+  theme(legend.position = 'none') +
+  geom_smooth(aes(y=Predicted), method = 'loess', se = FALSE)
+
+plot_data2 <- data.frame(
+  CH = AutoClaims_test$ClaimHistory,
+  Predicted = pred_response,
+  upper = upper_rep,
+  lower = lower_res
+)
+
+plot_data2 %>%
+  ggplot(aes(CH, Predicted)) +
+  geom_point(color = 'blue', alpha = 0.6) +
+  geom_line(color = 'darkblue') +
+  geom_ribbon(aes(ymin = lower, ymax = upper, color = 'lightblue', 
+                  alpha = 0.3)) + 
+  theme(legend.position = 'none') +
+  geom_smooth(aes(y=Predicted), method = 'loess', se = FALSE)
+
+################################################################################
+
+#Prediction Interval
+
+mu_hat <- predict(glm2, newdata = AutoClaims_test, type = 'response')
+phi_hat <- summary(glm2)$dispersion
+
+shape_hat <- 1 / phi_hat
+scale_hat <- mu_hat * phi_hat
+
+lower_pi <- qgamma(0.025, shape = shape_hat, scale = scale_hat)
+upper_pi <- qgamma(0.975, shape = shape_hat, scale = scale_hat)
+
+pi_data <- data.frame(
+  Age = AutoClaims_test$Age,
+  Predicted = mu_hat,
+  lowerPI = lower_pi,
+  upperPI = upper_pi
+)
+
+pi_data <- pi_data[order(pi_data$Age),]
+
+pi_data %>%
+  ggplot(aes(Age, Predicted)) +
+  geom_point(color = 'blue', alpha = 0.6) +
+  geom_ribbon(aes(ymin=lowerPI, ymax=upperPI), fill = 'lightpink', 
+              alpha = 0.3) +
+  geom_smooth(aes(y=Predicted), method = 'loess', se = TRUE)
+
+################################################################################
 
 
 
